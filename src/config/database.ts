@@ -9,7 +9,7 @@ if (dotenvResult.error) {
 }
 
 // DB Connection
-const MONGO_URI = dotenvResult.parsed?.MONGODB_URI;
+const MONGO_URI = process.env.MONGODB_URI;
 if(!MONGO_URI) {
   throw new Error('MONGO_URI is not defined in environment variables');
 }

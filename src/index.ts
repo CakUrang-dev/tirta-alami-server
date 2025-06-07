@@ -3,6 +3,14 @@ import cors from 'cors';
 import { connectDB } from './config/database';
 import authRoutes from './api/auth/auth.routes';
 
+
+// -- Production-Aware Environment Loading --
+if(process.env.NODE_ENV !== 'production') {
+    console.log('Running in development mode, loading variables from .env file');
+} else {
+    console.log('Running in production mode, using platform environment variables');
+}
+
 // -- Initial Setup --
 const app = express();
 const PORT = process.env.PORT || 3001;
