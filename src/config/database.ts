@@ -1,17 +1,13 @@
 import { MongoClient } from "mongodb";
 import dotenv from 'dotenv'; 
 
-// Explicitly load and check the .env file 
-const dotenvResult = dotenv.config();
-if (dotenvResult.error) {
-    // This will stop the server if the .env file itself has an error
-    throw new Error(`FATAL ERROR loading .env file: ${dotenvResult.error}`);
-}
+
 
 // DB Connection
 const MONGO_URI = process.env.MONGODB_URI;
+
 if(!MONGO_URI) {
-  throw new Error('MONGO_URI is not defined in environment variables');
+  throw new Error('FATAL ERROR: MONGODB_URI was not found in the environment. Please set it in the .env file or the Render dashboard.');
 }
 const client = new MongoClient(MONGO_URI);
 
