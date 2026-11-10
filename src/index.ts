@@ -1,38 +1,63 @@
 import 'dotenv/config';
+import os from 'os';
 import express from 'express';
 import cors from 'cors';
 import { connectDB } from './config/database';
 import authRoutes from './api/auth/auth.routes';
+import customerRoutes from './api/customers/customer.routes';
+import waterConsumptionRoutes from './api/water-consumption/water-consumption.routes';
+import paymentRoutes from './api/payments/payment.routes';
+import reportRoutes from './api/reports/report.routes';
+import settingRoutes from './api/settings/setting.routes';
 
-
-// -- Production-Aware Environment Loading --
-if(process.env.NODE_ENV !== 'production') {
-    console.log('Running in development mode, loading variables from .env file');
-} else {
-    console.log('Running in production mode, using platform environment variables');
-}
-
-// -- Initial Setup --
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // -- Middleware --
 app.use(cors());
 app.use(express.json());
 
-connectDB(); // Connect DB When the server starts
-
-
 // -- API Routes --
 app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/water-consumption', waterConsumptionRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/settings', settingRoutes);
 
 // -- Health Check Route --
-app.get('/', (req, res) => {
-    res.status(200).json({ message: 'Welcome to Tirta Alami API' });
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Welcome to Tirta Alami PostgreSQL API',
+  });
 });
 
-// -- Start the server --
-app.listen(PORT, () => {
-        console.log(`Server listening on port ${PORT}`);
-})
+function getLocalNetworkIPs(): string[] {
+  const interfaces = os.networkInterfaces();
+  const ips: string[] = [];
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name] || []) {
+      if (net.family === 'IPv4' && !net.internal) {
+        ips.push(net.address);
+      }
+    }
+  }
+  return ips;
+}
 
+// -- Start the server --
+async function bootstrap() {
+  await connectDB();
+  app.listen(PORT, HOST, () => {
+    console.log(`Server listening locally on: http://localhost:${PORT}`);
+    const lanIps = getLocalNetworkIPs();
+    for (const ip of lanIps) {
+      console.log(`Server accessible on LAN/Wi-Fi: http://${ip}:${PORT}`);
+    }
+  });
+}
+
+bootstrap();

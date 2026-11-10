@@ -1,29 +1,50 @@
-import { MongoClient } from "mongodb";
-import dotenv from 'dotenv'; 
+import { PrismaClient } from '@prisma/client';
 
-// DB Connection
-const MONGO_URI = process.env.MONGODB_URI;
+export const prisma = new PrismaClient();
 
-if(!MONGO_URI) {
-  throw new Error('FATAL ERROR: MONGODB_URI was not found in the environment. Please set it in the .env file or the Render dashboard.');
-}
-
-const client = new MongoClient(MONGO_URI);
+const DEFAULT_SETTINGS = [
+  {
+    key: 'meter_rent_price',
+    value: '21000',
+    description: 'Biaya sewa meter bulanan (Rp)',
+  },
+  {
+    key: 'tier1_rate',
+    value: '2000',
+    description: 'Tarif air Tier 1 (1-10 m³) per m³ (Rp)',
+  },
+  {
+    key: 'tier2_rate',
+    value: '3000',
+    description: 'Tarif air Tier 2 (>10 m³) per m³ (Rp)',
+  },
+  {
+    key: 'company_name',
+    value: 'HIPPAM "TIRTA ALAMI"',
+    description: 'Nama perusahaan pada struk pembayaran',
+  },
+  {
+    key: 'company_header',
+    value: 'KEL. CEMOROKANDANG KEC. KEDUNGKANDANG',
+    description: 'Sub-judul alamat pada struk pembayaran',
+  },
+];
 
 export async function connectDB() {
-    try {
-        await client.connect();
-        console.log('Successfully connected to MongoDB Atlas!');
-    } catch (error) {
-        console.error('Error connecting to MongoDB Atlas:', error);
-        process.exit(1);
+  try {
+    await prisma.$connect();
+    console.log('Successfully connected to PostgreSQL via Prisma!');
+
+    // Seed default settings if they do not exist yet
+    for (const item of DEFAULT_SETTINGS) {
+      await prisma.setting.upsert({
+        where: { key: item.key },
+        update: {},
+        create: item,
+      });
     }
-}
-
-export const getCustomerCollection = () => {
-    return client.db('tirta-alami').collection('customer');
-}
-
-export const getAdminCollection = () => {
-    return client.db('tirta-alami').collection('admin');
+  } catch (error) {
+    console.error('Error connecting to PostgreSQL database:', error);
+    process.exit(1);
+  }
 }

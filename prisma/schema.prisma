@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id                Int       @id @default(autoincrement())
+  customerId        String    @unique @map("customer_id")
+  name              String
+  address           String    @default("")
+  customerClass     String    @default("") @map("customer_class")
+  village           String    @default("")
+  initialMeter      Int       @default(0) @map("initial_meter")
+  phoneNumber       String?   @map("phone_number")
+  hashedPin         String?   @map("hashed_pin")
+  failedPinAttempts Int       @default(0) @map("failed_pin_attempts")
+  isLocked          Boolean   @default(false) @map("is_locked")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  payments          Payment[]
+
+  @@map("customers")
+}
+
+model Admin {
+  id                Int      @id @default(autoincrement())
+  adminId           String   @unique @map("admin_id")
+  username          String?  @unique
+  name              String
+  hashedPin         String?  @map("hashed_pin")
+  failedPinAttempts Int      @default(0) @map("failed_pin_attempts")
+  isLocked          Boolean  @default(false) @map("is_locked")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+model Payment {
+  id                Int       @id @default(autoincrement())
+  receiptId         String    @unique @map("receipt_id")
+  customerId        String    @map("customer_id")
+  customer          Customer  @relation(fields: [customerId], references: [customerId], onUpdate: Cascade, onDelete: Cascade)
+  name              String
+  village           String    @default("")
+  pastMonthMeter    Int       @map("past_month_meter")
+  currentMonthMeter Int       @map("current_month_meter")
+  totalMeter        Int       @map("total_meter")
+  rentFee           Int       @map("rent_fee")
+  totalCost         Int       @map("total_cost")
+  period            String
+  periodMonth       Int       @map("period_month")
+  periodYear        Int       @map("period_year")
+  isPaid            Boolean   @default(false) @map("is_paid")
+  paymentDate       DateTime  @default(now()) @map("payment_date")
+  reportDate        DateTime? @map("report_date")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([customerId, isPaid])
+  @@index([isPaid, reportDate])
+  @@map("payments")
+}
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
