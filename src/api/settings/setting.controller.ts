@@ -79,3 +79,95 @@ export async function updateSettings(req: Request, res: Response) {
     });
   }
 }
+
+/**
+ * POST /api/settings/migrate-batch
+ * Bulk import legacy customers, payments, and admins into PostgreSQL
+ */
+export async function migrateBatch(req: Request, res: Response) {
+  try {
+    const { customers, payments, admins } = req.body;
+    let customersInserted = 0;
+    let paymentsInserted = 0;
+    let adminsInserted = 0;
+
+    if (Array.isArray(customers) && customers.length > 0) {
+      const result = await prisma.customer.createMany({
+        data: customers.map((c: any) => ({
+          customerId: String(c.customerId),
+          name: String(c.name || ''),
+          address: String(c.address || ''),
+          customerClass: String(c.customerClass || '1'),
+          village: String(c.village || ''),
+          initialMeter: Number(c.initialMeter) || 0,
+          phoneNumber: c.phoneNumber ? String(c.phoneNumber) : null,
+        })),
+        skipDuplicates: true,
+      });
+      customersInserted = result.count;
+    }
+
+    if (Array.isArray(admins) && admins.length > 0) {
+      const result = await prisma.admin.createMany({
+        data: admins.map((a: any) => ({
+          adminId: String(a.adminId),
+          username: a.username ? String(a.username) : null,
+          name: String(a.name || ''),
+        })),
+        skipDuplicates: true,
+      });
+      adminsInserted = result.count;
+    }
+
+    if (Array.isArray(payments) && payments.length > 0) {
+      const result = await prisma.payment.createMany({
+        data: payments.map((p: any) => ({
+          receiptId: String(p.receiptId),
+          customerId: String(p.customerId),
+          name: String(p.name || ''),
+          village: String(p.village || ''),
+          pastMonthMeter: Number(p.pastMonthMeter) || 0,
+          currentMonthMeter: Number(p.currentMonthMeter) || 0,
+          totalMeter: Number(p.totalMeter) || 0,
+          rentFee: Number(p.rentFee) || 0,
+          totalCost: Number(p.totalCost) || 0,
+          period: String(p.period),
+          periodMonth: Number(p.periodMonth),
+          periodYear: Number(p.periodYear),
+          isPaid: Boolean(p.isPaid),
+          paymentDate: new Date(p.paymentDate),
+          reportDate: p.reportDate ? new Date(p.reportDate) : null,
+        })),
+        skipDuplicates: true,
+      });
+      paymentsInserted = result.count;
+    }
+
+    const [totalCustomers, totalPayments, totalAdmins] = await Promise.all([
+      prisma.customer.count(),
+      prisma.payment.count(),
+      prisma.admin.count(),
+    ]);
+
+    return res.status(200).json({
+      status: 'success',
+      inserted: {
+        customers: customersInserted,
+        payments: paymentsInserted,
+        admins: adminsInserted,
+      },
+      totals: {
+        customers: totalCustomers,
+        payments: totalPayments,
+        admins: totalAdmins,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error in migrateBatch:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Gagal melakukan migrasi data batch.',
+      detail: error.message,
+    });
+  }
+}
